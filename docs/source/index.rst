@@ -1,19 +1,19 @@
-Welcome to Lumache's documentation!
+Bem vindo a documentação acerca do Nextcloud em ambientes distribuídos!
 ===================================
 
-**Lumache** (/lu'make/) is a Python library for cooks and food lovers
-that creates recipes mixing random ingredients.
-It pulls data from the `Open Food Facts database <https://world.openfoodfacts.org/>`_
-and offers a *simple* and *intuitive* API.
+`Nextcloud <https://nextcloud.com>`_ é uma plataforma para hospedagem de arquivos, organização do trabalho, comunicação entre pessoas, além de ser um ecossistema para diversos aplicativos.
 
-Check out the :doc:`usage` section for further information, including
-how to :ref:`installation` the project.
+É possível executar essa aplicação em pequenas placas (Raspberry Pi) até em grandes centros de dados com alto poder computacional.
+
+Esta documentação tem o objetivo de demonstrar os cenários possíveis para a instalação do Nextcloud:
+
+   - Desde uma instância até um cluster com diversos membros.
 
 .. note::
 
-   This project is under active development.
+   Este projeto está em desenvolvimento contínuo.
 
-Contents
+Conteúdo
 --------
 
 .. toctree::
