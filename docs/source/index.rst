@@ -18,5 +18,7 @@ Conteúdo
 
 .. toctree::
 
-   usage
-   api
+   - `Início </inicio>` _ : requisitos a serem atendidos
+   - `Hospedeiro<hospedeiro>` _ : configurações iniciais
+   - `DNS<dns>` _ : configurações de nome
+   - `Validação<setup-check>` _ : validações de desempenho no sistema hospedeiro
