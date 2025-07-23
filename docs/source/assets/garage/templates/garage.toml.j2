@@ -1,0 +1,22 @@
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "{{ garage_db_engine }}"
+metadata_auto_snapshot_interval = "{{ garage_metadata_snapshot_interval }}"
+
+replication_factor = {{ garage_replication_factor }}
+
+compression_level = {{ garage_compression_level }}
+
+rpc_bind_addr = "[::]:{{ garage_rpc_port }}"
+rpc_public_addr = "{{ garage_public_ip }}:{{ garage_rpc_port }}"
+rpc_secret = "{{ garage_rpc_secret }}"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:{{ garage_s3_port }}"
+root_domain = ".s3.garage"
+
+[s3_web]
+bind_addr = "[::]:{{ garage_web_port }}"
+root_domain = ".web.garage"
+index = "index.html"

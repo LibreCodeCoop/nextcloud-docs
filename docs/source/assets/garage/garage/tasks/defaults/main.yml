@@ -1,0 +1,11 @@
+garage_config_dir: /etc/garage
+garage_image: dxflrs/garage:v1.0.0
+garage_rpc_port: 3901
+garage_s3_port: 3900
+garage_web_port: 3902
+garage_rpc_secret: "changeme"  # Deve ser alterado por um valor de 32 bits. Podes usar gerar um com o seguinte comando: openssl rand -hex 32
+garage_public_ip: "{{ ansible_default_ipv4.address }}"
+garage_replication_factor: 3
+garage_compression_level: 2
+garage_metadata_snapshot_interval: "6h"
+garage_db_engine: "lmdb"
