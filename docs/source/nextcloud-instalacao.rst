@@ -86,17 +86,29 @@ Crie as redes necessárias:
     docker network create reverse-proxy
     docker network create postgres
 
+
+Subindo os serviços
+-------------------
+
+Construa as imagens, e suba os containers:
+
+.. code-block:: bash
+    # Construindo imagens
+    docker compose build --pull
+    # Subindo os containers
+    docker compose up -d
+
+    
 Após a Configuração
 -------------------
 
-Após concluir a configuração, acesse: https://seudominio.tld/settings/admin/overview
+Após concluir a configuração, acesse: https://seudominio.com.br/settings/admin/overview
 
 Se for necessário executar qualquer comando occ, execute assim:
 
 .. code-block:: bash
-
-    docker compose exec -u www-data app ./occ db:add-missing-indices
-    docker compose exec -u www-data app ./occ db:convert-filecache-bigint
+    # Verifique o status da instalação
+    docker compose exec -u www-data app ./occ setupchecks
 
 Configuração Personalizada
 -------------------------
@@ -104,6 +116,47 @@ Configuração Personalizada
 ### Personalizar o conteúdo do docker-compose
 
 Você pode fazer isso usando variáveis de ambiente e criando um arquivo chamado ``docker-compose.override.yml`` para adicionar novos serviços.
+
+### Redis
+Adicionando redis para cache de memória. 
+1. Crie a rede docker para o `redis`: `docker network create redis`
+2. Crie o arquivo `docker-compose.override.yml`
+3. Adicione o serviço do redis e adicione a rede do redis aos serviços que vão acessar o mesmo.
+
+.. code-block:: yaml
+    networks:
+      redis:
+          external: true
+          name: redis
+
+    services:
+      redis:
+          image: redis:alpine
+          restart: unless-stopped
+          volumes:
+          - ./volumes/redis/data:/data
+          - ./volumes/redis/conf/redis.conf:/usr/local/etc/redis/redis.conf
+          networks:
+          - redis
+      app:
+          networks:
+          - redis
+      cron:
+          networks:
+          - redis
+
+
+4. Adicione ao arquivo de configuração do Nextcloud o bloco de configuração do `redis`
+
+.. code-block:: bash
+        'memcache.distributed' => '\\OC\\Memcache\\Redis',
+        'memcache.locking' => '\\OC\\Memcache\\Redis',
+        'redis' => 
+        array (
+            'host' => 'redis',
+        ),
+
+
 
 ### PHP
 
@@ -156,12 +209,7 @@ Usando uma Versão Específica do Nextcloud
 
 Altere o valor de ``NEXTCLOUD_VERSION`` no arquivo ``.env`` e coloque o nome da tag que deseja usar. Verifique as tags disponíveis em: https://hub.docker.com/_/nextcloud/tags
 
-Construa as imagens, desça os containers e suba novamente:
 
-.. code-block:: bash
-
-    docker compose build --pull
-    docker compose up -d
 
 Visualizando Logs
 -----------------
@@ -178,3 +226,22 @@ Você verá esta mensagem nos logs entre outras mensagens de atualização:
 
     app_1      | 2025-06-25T11:10:09.568623133Z Initializing nextcloud 31.0.8.0 ...
     app_1      | 2025-06-25T11:10:09.577733913Z Upgrading nextcloud from 31.0.7.0 ...
+
+
+Diretório de arquivos
+---------------------
+O diretório que contém os dados dos usuários se encontra mapeado para o host, no seguinte caminho `./volumes/nextcloud/data`.
+Se há a necessidade de mover esses dados, lembre-se de ajustar as permissões posteriormente.
+O dono e grupo dos arquivos são o `wwww-data`.
+
+
+Backup
+------
+Os seguintes arquivos devem feitos backup com sua ferramenta de preferência. São eles:
+
+.. code-block:: bash
+    Configurações: /volumes/nextcloud/config/
+    Dados dos usuários: /volumes/nextcloud/data/
+    Pasta dos temas: /volumes/nextcloud/themes/
+    Compose do projeto: docker-compose.yml
+    Secrets: .env
