@@ -17,8 +17,10 @@ Conteúdo
 --------
 
 .. toctree::
+   :maxdepth: 2
+   :hidden:
 
-   - `Início <inicio.rst>` _ : requisitos a serem atendidos
-   - `Hospedeiro<hospedeiro.rst>` _ : configurações iniciais
-   - `DNS<dns.rst>` _ : configurações de nome
-   - `Validação<setup-check.rst>` _ : validações de desempenho no sistema hospedeiro
+   inicio
+   hospedeiro
+   dns
+   setup-check
