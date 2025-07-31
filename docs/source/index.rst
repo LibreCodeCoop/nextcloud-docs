@@ -18,7 +18,7 @@ Conteúdo
 
 .. toctree::
 
-   - `Início </inicio>` _ : requisitos a serem atendidos
-   - `Hospedeiro<hospedeiro>` _ : configurações iniciais
-   - `DNS<dns>` _ : configurações de nome
-   - `Validação<setup-check>` _ : validações de desempenho no sistema hospedeiro
+   - `Início <inicio.rst>` _ : requisitos a serem atendidos
+   - `Hospedeiro<hospedeiro.rst>` _ : configurações iniciais
+   - `DNS<dns.rst>` _ : configurações de nome
+   - `Validação<setup-check.rst>` _ : validações de desempenho no sistema hospedeiro
