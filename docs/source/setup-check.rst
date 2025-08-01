@@ -85,7 +85,7 @@ rkhunter
 
 - Em distribuições baseadas em Ubuntu, pode-se instalar com: ``apt-get install rkhunter``.
 - Uma checagem pode ser executada passando o parâmetro ``-a``: ``rkhunter -a``
-- Listar os testes é possível com ``--list``.
+- Listar os testes é possível passando o parâmetro ``--list``.
 
 Verificação de performance
 =========================
@@ -93,10 +93,10 @@ Verificação de performance
 - Antes de fazer a instalação dos serviços no servidor, uma boa prática é conferir se o ambiente entregue está pronto para produção.
 - O que podemos testar:
 
-  - [ ] Velocidade de download/upload
-  - [ ] Velocidade de escrita em disco - IO
-  - [ ] Teste de stress de CPU
-  - [ ] Reputação do IP público
+  - [  ] Velocidade de download/upload
+  - [  ] Velocidade de escrita em disco - IO
+  - [  ] Teste de stress de CPU
+  - [  ] Reputação do IP público
 
 Velocidade de download/upload
 -----------------------------

@@ -227,6 +227,7 @@ Próximos passos
 O próximo passo é realizar configurações no sistema hospedeiro, de maneira a deixá-lo apto para a instalação da aplicação.
 
 .. toctree::
+   :numbered:
    :maxdepth: 2
    :hidden:
 
