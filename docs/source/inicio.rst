@@ -35,9 +35,11 @@ Banco de Dados Distribuído
 
 Outro aspecto a ser levado em conta é o banco de dados: é necessário fazer a replicação em tempo real.
 
-Existem soluções como **MariaDB Galera Cluster** e **Autobase** que fornecem uma interface gráfica para fazer a instalação e configuração de novos clusters. Todavia essa instalação (a que ocorre pela interface gráfica) é feita com a instalação direto no sistema operacional, sem a utilização de containers.
+Existem soluções como **MariaDB Galera Cluster** e **Autobase** que fornecem uma interface gráfica para fazer a instalação e configuração de novos clusters.
 
-Optou-se por utilizar o **Patroni**, o qual é um template para clusters de Postgres.
+Também existe o **Patroni**, o qual é um template para clusters de Postgres, implementando protocolo de consenso (ETCD, por exemplo) banco de dados Postgres.
+
+Optou-se pela replicação nativa, afim de melhor exemplificar.
 
 Coordenação Distribuída
 ------------------------
@@ -48,18 +50,19 @@ O etcd atua em conjunto com o Patroni, de maneira a garantir que a aplicação a
 
 A topologia com dois datacenters para fazer o cluster de banco de dados fica da seguinte maneira:
 
-.. image:: image.png
-   :alt: Topologia de dois datacenters
+.. image:: patroni-1.png
+   :alt: Topologia de dois datacenters, onde um dos dois fica em espera recebendo atualizações do primário, e, torna-se primário em caso de falhas
    :align: center
+
 
 *Fonte:* https://patroni.readthedocs.io/en/latest/ha_multi_dc.html
 
 Configurações necessárias a nível de DNS
 =========================================
 
-1. Entrada tipo A apontando para o IP da aplicação
-2. Provedor de DNS sem suporte a certificados *wildcard*
-3. Provedor de DNS com suporte a certificados *wildcard*
+Entrada tipo A apontando para o IP da aplicação
+Cenário 1: Provedor de DNS sem suporte a certificados *wildcard*
+Cenário 2: Provedor de DNS com suporte a certificados *wildcard*
 
 Certificados Wildcard
 ----------------------
@@ -73,27 +76,23 @@ Balanceamento de carga em ambientes distribuídos
 - Por se tratar de um setup primário/secundário, o balanceamento de carga entre datacenters não será habilitado.
 - O que pode ser habilitado é o balanceamento de carga dentro de cada datacenter em questão, a depender dos recursos computacionais disponíveis.
 
-Banco de dados distribuídos
-============================
 
-É possível utilizar **MySQL**, **MariaDB** ou **Postgres**.
-
-Optou-se por utilizar o gerenciador de alta disponibilidade **Patroni** o qual implementa o Postgres.
-
-Outra alternativa seria utilizar o **Galera Manager** ou o **Autobase**. Ambos estão documentados mas optou-se pelo Patroni por sua simplicidade e flexibilidade.
 
 Ferramentas para backup e recuperação em caso de desastres
 ===========================================================
 
 A ferramenta utilizada para backup (em servidor diferente do cluster) é o **Duplicati**.
 
+
 Soluções de armazenamento de backup
 ====================================
 
 O provedor **Wasabi** é o escolhido para armazenamento em objetos. De maneira que o backup será criptografado, não há problema em utilizar provedor externo.
+Outra opção é utilizar o MinIO, software livre que permite a criação de um ambiente compatível com o protocolo S3. 
 
 .. warning::
    A única ressalva é a latência do link de internet para restaurar o backup, o que pode demorar.
+
 
 Ferramentas para monitoramento da infraestrutura
 =================================================
@@ -102,30 +101,23 @@ A ferramenta **Zabbix** será utilizada afim de monitorar a infraestrutura.
 
 Outras utilitários de linha de comando também podem ser utilizados, tais quais::
 
-   gluster
-   patronictl
-   etcdctl
+   htop - mostra os processos que estão em execução
+   iotop - mostra escrita em disco de cada processo
+   
 
-Está em análise utilizar a ferramenta **Percona Monitoring Management** para análise do banco de dados.
-
-Ferramentas para verificação da integridade da instalação
-==========================================================
-
-**GlusterFS**, **Patroni**, **etcd**, **Nextcloud** possuem ferramentas de linha de comando para verificar seu status.
-
-Serão incorporados ao Zabbix para monitoramento.
 
 Levantamento de ferramentas para infraestrutura como código
 ============================================================
 
-No cenário atual é utilizado **Proxmox** como virtualizador, logo, poder-se-ia utilizar a ferramenta **OpenTofu** para instanciar novas máquinas.
+Quando se é utilizado o virtualizador **Proxmox**, logo, poder-se-ia utilizar a ferramenta **OpenTofu** para instanciar novas máquinas.
 
-Será utilizado o **Ansible** para automatizar tarefas.
+Todavia, será utilizado o **Ansible** para automatizar tarefas de maneira geral.
 
 Ferramentas de interconexão utilizando redes definidas por software
 ====================================================================
 
 Em estudo se será necessário.
+
 
 Diagramação da arquitetura proposta
 ====================================
@@ -215,12 +207,14 @@ Considerações
 Limitações com 2 Data Centers
 ------------------------------
 
-Utilizando 2 data centers para a redundância requer intervenção manual para fazer a ativação do servidor secundário. Isso ocorre pois com apenas 2 nós não é possível utilizar o etcd para fazer a eleição de um líder.
+Utilizando 2 data centers para a redundância requer intervenção manual para fazer a ativação do servidor secundário. 
+Isso ocorre pois uma das limitações é que com apenas 2 nós não é possível utilizar o etcd para fazer a eleição de um líder.
+
 
 Ambiente com Alta Disponibilidade em 3 Data Centers
 ----------------------------------------------------
 
-.. image:: image-1.png
+.. image:: patroni-2.png
    :alt: Ambiente com 3 datacenters
    :align: center
 

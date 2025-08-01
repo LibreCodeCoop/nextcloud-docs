@@ -72,12 +72,24 @@ No arquivo ``/etc/ssh/sshd_config``, modifique as seguintes variáveis (ou desco
 
 Dessa maneira, será possível acessar com o usuário ``root`` mas sem a utilização de senha, apenas com autenticação de chaves.
 
+Considere alterar a porta que o serviço é executado e o número máximo de tentativas permitidas, nas variáveis `Port` e `MaxAuthTries` respectivamente:
+
+.. code-block:: bash
+
+   Port 22003 # Porta aleatória
+   MaxAuthTries 3 # Número máximo de tentativas
+
 Será necessário reiniciar o serviço para que as modificações tenham efeito.
 
-Em sistemas debian like poderá ser realizado com o comando ``systemctl restart sshd``
+Em sistemas debian like poderá ser realizado com o comando ``systemctl reload sshd``
 
 Fail2Ban
 --------
 
 De maneira a bloquear tentativas de acessos não autorizados ao servidor, ou ataques de negação de serviço, é possível configurar o **Fail2Ban** para bloquear esses endereços.
 
+
+Próximo passo
+-------------
+
+Realizar as configurações necessárias no registro de nomes (DNS).
