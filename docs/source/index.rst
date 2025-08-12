@@ -13,17 +13,6 @@ Esta documentação tem o objetivo de demonstrar os cenários possíveis para a 
 
    Este projeto está em desenvolvimento contínuo.
 
-Conteúdo
---------
-
-.. toctree::
-   :maxdepth: 2
-   :hidden:
-
-   inicio
-   hospedeiro
-   dns
-   setup-check
 
 .. Documentação Principal
 
@@ -33,14 +22,14 @@ Manual de Utilização
 
 .. toctree::
    :maxdepth: 2
-   :caption: Introdução:
+   :caption: Introdução
    
    inicio
    setup-check
 
 .. toctree::
    :maxdepth: 2
-   :caption: Configuração do Ambiente:
+   :caption: Configuração do Ambiente
    
    hospedeiro
    dns
@@ -48,21 +37,21 @@ Manual de Utilização
 
 .. toctree::
    :maxdepth: 2
-   :caption: Banco de Dados:
+   :caption: Banco de Dados
    
    banco
    banco-replica
 
 .. toctree::
    :maxdepth: 2
-   :caption: Armazenamento:
+   :caption: Armazenamento
    
    arquivos-sinc
    backup
 
 .. toctree::
    :maxdepth: 2
-   :caption: Nextcloud:
+   :caption: Nextcloud
    
    nextcloud-instalacao
    nextcloud-update

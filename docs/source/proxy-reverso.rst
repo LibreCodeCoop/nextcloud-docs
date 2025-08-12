@@ -14,7 +14,7 @@ Pode ter as seguintes características:
 
 Antes de configurar um ambiente em alta disponibilidade, certifique-se de ter configurado os registros DNS apropriadamente.
 
-Para garantir alta disponibilidade, é possível utilizar os seguintes softwares:
+Na sequencia tem a descrição de como utilizar o `nginx-proxy` como um proxy reverso:
 
 Nginx-proxy
 -----------

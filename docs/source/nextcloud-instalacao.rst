@@ -4,8 +4,9 @@ Instalação e Configuração do Nextcloud
 Antes da Primeira Execução
 --------------------------
 
-Crie um banco de dados e um usuário para a aplicação do Nextcloud. Por exemplo, Postgres:
-.. code-block:: bash
+Crie um banco de dados e um usuário para a aplicação do Nextcloud. 
+Exemplo no Postgres::
+
     # Acesse a pasta do postgres
     cd ~/projetos/postgres
     # Acesse o Postgres com o comando `psql`
@@ -18,8 +19,7 @@ Crie um banco de dados e um usuário para a aplicação do Nextcloud. Por exempl
     CREATE DATABASE nextcloud WITH OWNER = nextcloud;
 
 
-Clone o repositório no servidor: 
-.. code-block:: bash
+Clone o repositório no servidor::
 
     git clone https://github.com/LibreCodeCoop/nextcloud-docker.git
 
@@ -30,50 +30,51 @@ Copie o arquivo ``.env.example`` para ``.env`` e defina os valores:
 
     cp .env.example .env
 
-Tabela de Variáveis de Ambiente:
+
+.. table:: Tabela de Variáveis de Ambiente:
 
 +-----------------------------+---------+---------------------------------------------------------------+
-| Variável                    | Serviço | Descrição                                                    |
+| Variável | Serviço | Descrição |
 +=============================+=========+===============================================================+
-| ``VIRTUAL_HOST``            | `web`   | Seu domínio                                                  |
+| VIRTUAL_HOST | web | Seu domínio |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``LETSENCRYPT_HOST``        | `web`   | Seu domínio                                                  |
+| LETSENCRYPT_HOST | web | Seu domínio |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``LETSENCRYPT_EMAIL``       | `web`   | Email do administrador do sistema                            |
+| LETSENCRYPT_EMAIL | web | Email do administrador do sistema |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``NEXTCLOUD_TRUSTED_DOMAINS``| `app`   | Domínios separados por vírgula. O domínio web é obrigatório. |
+| NEXTCLOUD_TRUSTED_DOMAINS| app | Domínios separados por vírgula. O domínio web é obrigatório. |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``POSTGRES_DB``             | `db`    | Nome do banco PostgreSQL (padrão: nextcloud)                 |
+| POSTGRES_DB | db | Nome do banco PostgreSQL (padrão: nextcloud) |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``POSTGRES_USER``           | `db`    | Usuário do banco PostgreSQL (padrão: nextcloud)              |
+| POSTGRES_USER | db | Usuário do banco PostgreSQL (padrão: nextcloud) |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``POSTGRES_PASSWORD``       | `db`    | Senha do usuário do banco PostgreSQL                         |
+| POSTGRES_PASSWORD | db | Senha do usuário do banco PostgreSQL |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``POSTGRES_HOST``           | `app`   | Host do servidor PostgreSQL (padrão: postgres)               |
+| POSTGRES_HOST | app | Host do servidor PostgreSQL (padrão: postgres) |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``NEXTCLOUD_ADMIN_USER``    | `app`   | Nome de usuário do administrador do Nextcloud                |
+| NEXTCLOUD_ADMIN_USER | app | Nome de usuário do administrador do Nextcloud |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``NEXTCLOUD_ADMIN_PASSWORD``| `app`   | Senha do administrador do Nextcloud                          |
+| NEXTCLOUD_ADMIN_PASSWORD| app | Senha do administrador do Nextcloud |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``NEXTCLOUD_ADMIN_EMAIL``   | `app`   | Email do administrador do Nextcloud                          |
+| NEXTCLOUD_ADMIN_EMAIL | app | Email do administrador do Nextcloud |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``SMTP_HOST``               | `app`   | Servidor SMTP para envio de emails                           |
+| SMTP_HOST | app | Servidor SMTP para envio de emails |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``SMTP_SECURE``             | `app`   | Tipo de segurança SMTP (ssl, tls ou vazio)                   |
+| SMTP_SECURE | app | Tipo de segurança SMTP (ssl, tls ou vazio) |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``SMTP_PORT``               | `app`   | Porta do servidor SMTP                                       |
+| SMTP_PORT | app | Porta do servidor SMTP |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``SMTP_AUTHTYPE``           | `app`   | Tipo de autenticação SMTP (LOGIN, PLAIN, NTLM)               |
+| SMTP_AUTHTYPE | app | Tipo de autenticação SMTP (LOGIN, PLAIN, NTLM) |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``SMTP_NAME``               | `app`   | Nome de usuário para autenticação SMTP                       |
+| SMTP_NAME | app | Nome de usuário para autenticação SMTP |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``SMTP_PASSWORD``           | `app`   | Senha para autenticação SMTP                                 |
+| SMTP_PASSWORD | app | Senha para autenticação SMTP |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``MAIL_FROM_ADDRESS``       | `app`   | Endereço de email do remetente                               |
+| MAIL_FROM_ADDRESS | app | Endereço de email do remetente |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``MAIL_DOMAIN``             | `app`   | Domínio do email do remetente                                |
+| MAIL_DOMAIN | app | Domínio do email do remetente |
 +-----------------------------+---------+---------------------------------------------------------------+
-| ``TZ``                      | `app`   | Fuso horário (ex: America/Sao_Paulo)                         |
+| TZ | app | Fuso horário (ex: America/Sao_Paulo) |
 +-----------------------------+---------+---------------------------------------------------------------+
 
 .. important::
@@ -93,6 +94,7 @@ Subindo os serviços
 Construa as imagens, e suba os containers:
 
 .. code-block:: bash
+
     # Construindo imagens
     docker compose build --pull
     # Subindo os containers
@@ -104,20 +106,21 @@ Após a Configuração
 
 Após concluir a configuração, acesse: https://seudominio.com.br/settings/admin/overview
 
-Se for necessário executar qualquer comando occ, execute assim:
+O mesmo pode ser visualizado pela linha de comando utilizando comando `occ`:
 
 .. code-block:: bash
+
+    cd pasta/do/docker-compose.yml
     # Verifique o status da instalação
     docker compose exec -u www-data app ./occ setupchecks
 
 Configuração Personalizada
 -------------------------
 
-### Personalizar o conteúdo do docker-compose
-
 Você pode fazer isso usando variáveis de ambiente e criando um arquivo chamado ``docker-compose.override.yml`` para adicionar novos serviços.
 
-### Redis
+Redis
+------
 Adicionando redis para cache de memória. 
 1. Crie a rede docker para o `redis`: `docker network create redis`
 2. Crie o arquivo `docker-compose.override.yml`
@@ -156,9 +159,15 @@ Adicionando redis para cache de memória.
             'host' => 'redis',
         ),
 
+Ou, utilizando o comando `occ`::
+    
+    docker compose exec -u www-data app ./occ config:set "memcache.distributed" 
 
 
-### PHP
+
+
+PHP
+####
 
 1. Crie seu arquivo ``.ini`` na pasta ``volumes/php/``. Exemplo: ``volumes/php/xdebug.ini``
 2. Altere o arquivo ``docker-compose.override.yml`` adicionando seu volume:
@@ -170,7 +179,8 @@ Adicionando redis para cache de memória.
         volumes:
           - ./volumes/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
 
-### PHP-FPM
+PHP-FPM
+*********
 
 Para modificações no PHP-FPM, inclua o seguinte volume no serviço app no arquivo ``docker-compose.override.yml``:
 
@@ -191,9 +201,11 @@ Crie um arquivo ``./volumes/php/pm.ini`` com o seguinte conteúdo (consulte as r
     pm.min_spare_servers = 1
     pm.max_spare_servers = 3
 
-Referências:
+Referências::
+
 - https://docs.nextcloud.com/server/21/admin_manual/installation/server_tuning.html#tune-php-fpm
 - https://spot13.com/pmcalculator/
+
 
 Executando o Nextcloud
 ----------------------
@@ -230,9 +242,10 @@ Você verá esta mensagem nos logs entre outras mensagens de atualização:
 
 Diretório de arquivos
 ---------------------
+
 O diretório que contém os dados dos usuários se encontra mapeado para o host, no seguinte caminho `./volumes/nextcloud/data`.
 Se há a necessidade de mover esses dados, lembre-se de ajustar as permissões posteriormente.
-O dono e grupo dos arquivos são o `wwww-data`.
+O dono e grupo dos arquivos são o usuário `wwww-data`.
 
 
 Backup
@@ -240,8 +253,9 @@ Backup
 Os seguintes arquivos devem feitos backup com sua ferramenta de preferência. São eles:
 
 .. code-block:: bash
+
     Configurações: /volumes/nextcloud/config/
     Dados dos usuários: /volumes/nextcloud/data/
     Pasta dos temas: /volumes/nextcloud/themes/
     Compose do projeto: docker-compose.yml
-    Secrets: .env
+    Segredos: .env

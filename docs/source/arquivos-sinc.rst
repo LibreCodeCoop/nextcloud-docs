@@ -149,7 +149,7 @@ Em todos servidores, crie um volume a ser compartilhado::
 
     mkdir -p /data/brick1/gv0
 
-Crie o volume::
+Crie o volume e defina o número de réplicas::
 
     gluster volume create gv0 replica 3 server1.librecode.coop:/data/brick1/gv0 server2.librecode.coop:/data/brick1/gv0 server3.librecode.coop:/data/brick1/gv0 force
 
@@ -157,36 +157,10 @@ Inicialize o volume::
 
     gluster volume start gv0
 
-Segurança
-~~~~~~~~~
+O próximo passo é montar o volume para ser utilizado::
+    # Sintaxe mount.glusterfs "servidor onde será montado (o qual você está)":"diretório criado anteriormente" "caminho do diretório dos arquivos que serão acessados"
+    mount.glusterfs server1.librecode.coop:/data/brick1/gv0 /mnt/dados-sincronizados
 
-Para restringir acesso aos diretórios, podemos utilizar a diretiva ``auth.allow``. Veja o seguinte exemplo abaixo::
-
-    gluster volume set test-vol auth.allow "/(192.168.10.*|192.168.11.*),/outro-diretorio-1(192.168.1.*),/outro-diretorio-2(192.168.8.*)"
-
-Especifica que:
-
-1. A pasta raíz, definido pela '/', poderá ser montada por máquinas nas subredes 192.168.10.* e 192.168.11.*.
-2. Consegue dizer quem consegue montar as pastas 'outro-diretorio-1' e 'outro-diretorio-2?
-
-Exemplo::
-
-    gluster volume set gv0 auth.allow "192.168.1.10,192.168.15.120,192.168.20.20"
-
-Agora vamos precisar montar esse volume no servidor, seguindo essa sintaxe ``mount.glusterfs <IP ou hostname>:<nome_do_volume> <ponto_de_montagem>``. O IP ou hostname pode ser de qualquer servidor que esteja presente no cluster.
-
-No servidor1::
-
-    mkdir /mnt/gluster-test
-    mount.glusterfs server1.librecode.coop:/gv0 /mnt/gluster-test
-
-Vamos testar, criando arquivos no volume::
-
-    for i in `seq -w 1 100`; do cp -rp /var/log/dpkg.log /mnt/gluster-test/copy-test-$i; done
-
-Verificando se foram criados (essa pasta deve ser igual em todos servidores a partir de agora)::
-
-    ls -lha /mnt/gluster-teste
 
 Montando volumes automaticamente
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -197,7 +171,45 @@ Adicione ao ``/etc/fstab``::
 
 Exemplo::
 
-    server1.librecode.coop:/data/brick1/gv0 /mnt/gluster-test/ glusterfs defaults,_netdev 0 0
+    server1.librecode.coop:/data/brick1/gv0 /data/brick1/gv0 glusterfs defaults,_netdev 0 0
+
+
+Segurança
+~~~~~~~~~
+
+Para restringir acesso aos diretórios, podemos utilizar a diretiva ``auth.allow``. 
+Veja o exemplo abaixo::
+
+    gluster volume set test-vol auth.allow "/(192.168.10.*|192.168.11.*),/outro-diretorio-1(192.168.1.*),/outro-diretorio-2(192.168.8.*)"
+
+Especifica que:
+
+1. A pasta raíz, definido pela '/', poderá ser montada por máquinas nas subredes 192.168.10.* e 192.168.11.*.
+2. **Desafio:** Você consegue dizer quem consegue montar as pastas 'outro-diretorio-1' e 'outro-diretorio-2?
+
+Outro exemplo, agora especificando os endereços que podem acessar todo volume `gv0`::
+
+    gluster volume set gv0 auth.allow "192.168.1.10,192.168.15.120,192.168.20.20"
+
+Agora vamos precisar montar esse volume no servidor, seguindo essa sintaxe ``mount.glusterfs <hostname>:<nome_do_volume> <ponto_de_montagem>``. O hostname pode ser de qualquer servidor que esteja presente no cluster.
+
+No `servidor 1`::
+
+    mkdir /data/brick1/gv0
+    mount.glusterfs server1.librecode.coop:/gv0 /data/brick1/gv0
+
+Onde se lê `gv0` é o volume no gluster. Os volumes gluster podem ser verificados com o comando `gluster volume list`.
+Onde se lê `/data/brick1/gv0` é o diretório criado em cada servidor que foi feito no passo anterior (ou em algum momento).
+
+Vamos testar, criando arquivos no volume::
+
+    for i in `seq -w 1 100`; do cp -rp /var/log/dpkg.log /data/brick1/gv0/copy-test-$i; done
+
+Verificando se foram criados (essa pasta deve ser igual em todos servidores a partir de agora)::
+
+    ls -lha /data/brick1/gv0
+
+
 
 Monitoramento
 ~~~~~~~~~~~~~
@@ -225,7 +237,8 @@ Listando os clientes que estão acessando o volume::
 Considerações de performance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Ao sincronizar todo o diretório do Nextcloud(dados + código) não houve um desempenho satisfatório do GlusterFS. Aconselha-se utilizar um ponto de montagem separado do sistema operacional, e, mudar a pasta de dados dos usuários para o diretório o ponto de montagem a ser sincronizado.
+Ao sincronizar todo o diretório do Nextcloud (dados + código) não houve um desempenho satisfatório do GlusterFS.
+Aconselha-se utilizar um ponto de montagem separado do sistema operacional, e, mudar a pasta de dados dos usuários para o diretório o ponto de montagem a ser sincronizado.
 
 Exemplo de alteração da pasta de dados (dados dos usuários)::
 
@@ -246,18 +259,23 @@ Removendo volumes e reiniciando o cluster
 
 Antes de desfazer o pareamento com outros servidores (com o comando ``gluster probe``), é necessário remover os ``bricks`` do volume.
 
-Reduza as réplicas para ``2`` de todos os ``bricks`` do volume. Por exemplo::
+Reduza as réplicas para ``1`` de todos os ``bricks`` do volume. Por exemplo::
 
-    gluster volume remove-brick NOME-DO-VOLUME replica 2 serverY.librecode.coop:/data-brick1/gv0 force
+    gluster volume remove-brick NOME-DO-VOLUME replica 1 serverY.librecode.coop:/data-brick1/gv0 force
 
 E então saia do cluster::
 
     gluster peer detach serverY.seudominio force
 
+Antes de deletar o volume, é necessário pará-lo::
+    gluster volume stop NOME-DO-VOLUME
+    gluster volume delete NOME-DO-VOLUME
+
 Volume replicado versus Geo-replicação
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-É possível configurar a geo-replicação. Na tabela abaixo podemos ver a diferença:
+É possível configurar a geo-replicação. 
+Na tabela abaixo podemos ver a diferença:
 
 +--------------------------------+-----------------------------------+
 | Georreplicação de Volumes      | Geo-replicação                    |
@@ -277,8 +295,8 @@ Volume replicado versus Geo-replicação
 Comandos úteis
 --------------
 
-- Verificar detalhes de um volume: ``gluster volume status VOLUME detail``
-- Clientes conectados a um volume: ``gluster volume status VOLUME clients``
+- Verificar detalhes de um volume: ``gluster volume status NOME-DO-VOLUME detail``
+- Clientes conectados a um volume: ``gluster volume status NOME-DO-VOLUME clients``
 
 Problemas
 ---------
@@ -292,11 +310,16 @@ permissions on mountbroker-root directory are too liberal
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 O dono do diretório raiz (utilizado pelo gluster para ser montado posteriormente) deve ter as permissões de dono e grupo ``root`` e de acesso ``0711``.
+Resolva com `chmod 0711 -R /data/brick1/gv0`
 
 0-glusterfsd-mgmt: Exhausted all volfile servers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Verifique se o arquivo ``/etc/hosts`` está correto.
+Verifique se o arquivo ``/etc/hosts`` está correto. 
+Exemplo de ``/etc/hosts``:
+.. code::
+    IP-DO-SERVIDOR server1.dominio.com.br
+
 
 Porta TCP não disponível
 ~~~~~~~~~~~~~~~~~~~~~~~~

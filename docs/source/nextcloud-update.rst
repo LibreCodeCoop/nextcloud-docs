@@ -2,6 +2,7 @@ Atualização do Nextcloud
 =======================
 
 * Confira se tem o bash_alias no ambiente para o occ:
+
   Crie um alias para o comando occ editando o arquivo ``~/.bash_alias`` e colocando o seguinte conteúdo:
 
   .. code-block:: bash
@@ -10,14 +11,14 @@ Atualização do Nextcloud
 
 * Confira se tem algum PR pendente para ser aceito e mergeado na branch main do repo https://github.com/LibreCodeCoop/nextcloud-docker/pulls
 * Notificar usuários sobre a janela de manutenção
-* Encerre as conexões dos usuários com o Onlyoffice gentilmente para não haver perda de dados (lembre-se de reativá-lo após a atualização):
+
+.. warning:: Encerre as conexões dos usuários com o Onlyoffice gentilmente para não haver perda de dados (lembre-se de reativá-lo após a atualização)
 
   .. code-block:: bash
 
      docker exec CONTAINER-ONLYOFFICE documentserver-prepare4shutdown.sh
 
-* Derrube o serviço do Onlyoffice se precisar atualizar o mesmo.
-* Confira se o backup do banco de dados e dos arquivos estão sendo feitos em sua ferramenta de backup.
+
 * Faça uma lista dos apps ativos e salve em um arquivo:
 
   .. code-block:: bash
@@ -88,11 +89,19 @@ Atualização do Nextcloud
      occ app:list > app_list.new
      diff app_list.old app_list.new
 
-* Rodar o upgrade (irá tirar do modo de manutenção):
+* Se update entre versões MINOR (31.0.6 para 31.0.7 por exemplo), rodar comando upgrade sairá do modo de manutenção:
 
   .. code-block:: bash
 
      occ upgrade
+
+* Se atualização MAJOR (30 para 31): Rodar o upgrade e tirar do modo de manutenção.
+
+  .. code-block:: bash
+
+     occ upgrade
+     occ maintenance:mode --off
+
 
 * Acessar o Nextcloud para ver se está tudo funcionando bem:
 
