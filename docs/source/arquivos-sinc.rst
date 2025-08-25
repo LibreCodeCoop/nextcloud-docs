@@ -234,6 +234,7 @@ Listando os clientes que estão acessando o volume::
 
     gluster volume status nome-do-volume clients
 
+
 Considerações de performance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
