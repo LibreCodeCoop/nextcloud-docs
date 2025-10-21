@@ -113,6 +113,18 @@ Exemplo de cenário::
     server2.librecode.coop - 177.x.x.x
     server3.librecode.coop - 38.x.x.x
 
+No arquivo `/etc/hosts` será necessário adicionar os servidores, também:
+
+.. note:: Configure o endereço IP que está fixado na interface de rede do seu servidor.
+    
+Por exemplo, o arquivo `/etc/hosts` no servidor 1::
+    # Servidor 1
+    192.168.1.253 gluster01.dominio.coop
+    # Servidor 2
+    200.57.1.43   gluster02.dominio.coop
+
+
+
 Idealmente o diretório contendo os arquivos que serão sincronizados devem ficar em outro disco, separado do sistema operacional::
 
     apt update
@@ -145,13 +157,16 @@ No servidor 2::
     gluster peer probe servidor1
     gluster peer probe servidor3
 
-Em todos servidores, crie um volume a ser compartilhado::
+Em todos servidores, crie um diretório a ser compartilhado::
 
     mkdir -p /data/brick1/gv0
-
+    
+O próximo passo é criar o volume, definir o número de réplicas e qual diretório será parte do volume.
 Crie o volume e defina o número de réplicas::
 
     gluster volume create gv0 replica 3 server1.librecode.coop:/data/brick1/gv0 server2.librecode.coop:/data/brick1/gv0 server3.librecode.coop:/data/brick1/gv0 force
+
+.. note:: Se for réplica entre 2 servidores, mude o valor para ``replica 2
 
 Inicialize o volume::
 
@@ -164,6 +179,8 @@ O próximo passo é montar o volume para ser utilizado::
 
 Montando volumes automaticamente
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 
 Adicione ao ``/etc/fstab``::
 
@@ -235,6 +252,7 @@ Listando os clientes que estão acessando o volume::
     gluster volume status nome-do-volume clients
 
 
+
 Considerações de performance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -279,7 +297,7 @@ Volume replicado versus Geo-replicação
 Na tabela abaixo podemos ver a diferença:
 
 +--------------------------------+-----------------------------------+
-| Georreplicação de Volumes      | Geo-replicação                    |
+| Replicação de Volumes          | Geo-replicação                    |
 +================================+===================================+
 | Espelha dados em clusters      | Espelha dados em clusters         |
 |                                | distribuídos geograficamente      |
@@ -298,6 +316,7 @@ Comandos úteis
 
 - Verificar detalhes de um volume: ``gluster volume status NOME-DO-VOLUME detail``
 - Clientes conectados a um volume: ``gluster volume status NOME-DO-VOLUME clients``
+- Remove "brick" do volume: ``gluster volume remove-brick gluster-volume replica 2 server3.dominio.coop:/nome-do-brick force```
 
 Problemas
 ---------
@@ -325,7 +344,15 @@ Exemplo de ``/etc/hosts``:
 Porta TCP não disponível
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Com o comando ``gluster volume status VOLUME detail`` é possível obter mais informações. Se no campo ``TCP Port`` estiver com o valor ``N/A``, significa que este servidor não está conseguindo se comunicar com os outros servidores.
+Com o comando ``gluster volume status VOLUME detail`` é possível obter mais informações. 
+Se no campo ``TCP Port`` estiver com o valor ``N/A``, significa que este servidor não está conseguindo se comunicar com os outros servidores.
+
+
+
+Error: Host gfs1.dominio.com.br is not in 'Peer in Cluster' state
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Possívelmente algo falhou na verificação inicial do cluster. Verifique se o seu arquivo `/etc/hosts` está correto.
 
 Ansible role
 ------------

@@ -124,7 +124,7 @@ Diagramação da arquitetura proposta
 
 Abaixo está o diagrama da arquitetura proposta:
 
-.. code-block:: mermaid
+.. mermaid::
 
    graph TB
        subgraph DC1["Datacenter 1"]
@@ -214,7 +214,7 @@ Isso ocorre pois uma das limitações é que com apenas 2 nós não é possível
 Ambiente com Alta Disponibilidade em 3 Data Centers
 ----------------------------------------------------
 
-.. image:: patroni-2.png
+.. image:: assets/patroni-2.png
    :alt: Ambiente com 3 datacenters
    :align: center
 
