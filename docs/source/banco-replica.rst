@@ -167,7 +167,7 @@ Configurações do Servidor Primário
      local   all             all                                                    trust
      host    all             all                     127.0.0.1/32                   trust
      host    all             all                     172.0.0.0/8                    trust
-     host    all             usuario_replicacao      IP_Servidor_Secundário/32      md5
+     host    replication     usuario_replicacao      IP_Servidor_Secundário/32      md5
 
 - Caso seja necessário replicar para outro servidor, acrescente outra linha modificando/acrescentando o endereço da outra réplica.
 
@@ -224,8 +224,8 @@ Servidor secundário
   .. code-block:: bash
 
      rm -rf ./volumes/postgres/data/*
-     docker run --rm -v ./volumes/postgres/data:/var/lib/postgresql/data postgres:16-alpine \
-       bash -c "PGPASSWORD=$POSTGRES_REPLICATION_PASSWORD pg_basebackup -h $POSTGRES_PRIMARY_HOST -p $POSTGRES_PRIMARY_PORT -U $POSTGRES_REPLICATION_USER -D /var/lib/postgresql/data -P -R -v --wal-method=stream"
+     docker run --rm -v ${pwd}/volumes/postgres/data:/var/lib/postgresql/data postgres:16-alpine \
+       bash -c "PGPASSWORD=$POSTGRES_REPLICATION_PASSWORD pg_basebackup -D /var/lib/postgresql/data -h $POSTGRES_PRIMARY_HOST -p $POSTGRES_PRIMARY_PORT -U $POSTGRES_REPLICATION_USER  -P -R -v --wal-method=stream"
 
 - Parâmetros do ``pg_basebackup``:
 
