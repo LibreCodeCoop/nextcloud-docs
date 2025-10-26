@@ -41,6 +41,7 @@ Manual de Utilização
    
    banco
    banco-replica
+   patroni
 
 .. toctree::
    :maxdepth: 2
@@ -48,6 +49,12 @@ Manual de Utilização
    
    arquivos-sinc
    backup
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Recuperação de Desastres
+   
+   disaster-recovery
 
 .. toctree::
    :maxdepth: 2
