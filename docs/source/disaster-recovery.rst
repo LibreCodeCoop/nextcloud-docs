@@ -821,6 +821,379 @@ Cronograma de Testes
 - **Teste de Backup/Restore**: Semanalmente
 - **Validação de Monitoramento**: Diariamente
 
+Homologação de Testes - PostgreSQL Nativo
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Este documento detalha cenários testados em ambiente com replicação manual PostgreSQL, incluindo tempo de execução de cada etapa e problemas encontrados.
+
+**Legenda:**
+
+- **S1** = Servidor 1 (Datacenter Primário)
+- **S2** = Servidor 2 (Datacenter Secundário)
+
+Cenário de Teste 1: Failover Sem Certificado Wildcard
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Configuração do Ambiente:**
+
+- Certificados SSL específicos por servidor (NÃO wildcard)
+- Projetos replicados: ``nginx-proxy``, ``nextcloud-docker``, ``postgres``
+- Dados replicados: Nextcloud (via GlusterFS), PostgreSQL (streaming replication)
+- **S1 Ativo**: nginx-proxy, nextcloud, postgres (primário)
+- **S2 Ativo**: nextcloud (standby), postgres (réplica)
+- **S2 Inativo**: nginx-proxy (será iniciado após failover)
+
+**Procedimento de Teste:**
+
+1. **Simular Falha do S1** (Tempo: 1 min)
+
+   .. code-block:: bash
+   
+      # No S1 - Desligar servidor para simular falha
+      sudo shutdown -h now
+      
+      # Ou parar serviços para teste controlado
+      docker compose down
+
+2. **Atualizar DNS** (Tempo: 2-5 min)
+
+   .. code-block:: bash
+   
+      # Atualizar entrada tipo A no provedor DNS
+      # Exemplo: lugar.librecode.coop
+      # DE: 189.39.218.225 (S1)
+      # PARA: 187.57.255.128 (S2)
+      
+      # Via CloudFlare API (exemplo)
+      curl -X PUT "https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{record_id}" \
+        -H "Authorization: Bearer {api_token}" \
+        -H "Content-Type: application/json" \
+        --data '{
+          "type": "A",
+          "name": "lugar.librecode.coop",
+          "content": "187.57.255.128",
+          "ttl": 300
+        }'
+   
+   .. note::
+      Aguardar TTL do DNS expirar (geralmente 5-15 minutos) antes de validar acesso.
+
+3. **Promover PostgreSQL Réplica para Primário no S2** (Tempo: 30 seg - 2 min)
+
+   .. code-block:: bash
+   
+      # Método 1: Via pg_ctl (dentro do container)
+      docker compose exec -u postgres postgres pg_ctl promote -D /var/lib/postgresql/data
+      
+      # Método 2: Via SQL (PostgreSQL 12+)
+      docker compose exec postgres psql -U postgres -c "SELECT pg_promote();"
+      
+      # Verificar promoção bem-sucedida
+      docker compose exec postgres psql -U postgres -c "SELECT pg_is_in_recovery();"
+      # Deve retornar: f (false = é primário agora)
+      
+      # Verificar logs de promoção
+      docker compose logs postgres | grep -i "promote\|primary"
+
+4. **Inicializar nginx-proxy no S2** (Tempo: 1-2 min)
+
+   .. code-block:: bash
+   
+      # No S2, iniciar nginx-proxy
+      cd /caminho/para/nginx-proxy
+      docker compose up -d
+      
+      # Verificar se iniciou corretamente
+      docker compose ps
+      docker compose logs nginx-proxy
+      
+      # Verificar certificação SSL
+      curl -I https://lugar.librecode.coop
+
+5. **Validar Nextcloud** (Tempo: 2-5 min)
+
+   .. code-block:: bash
+   
+      # Nextcloud já deve estar em execução no S2
+      docker compose ps nextcloud
+      
+      # Testar acesso web
+      curl -I https://lugar.librecode.coop
+      
+      # Testar login
+      curl -u usuario:senha https://lugar.librecode.coop/ocs/v1.php/cloud/capabilities
+      
+      # Verificar conexão com banco de dados
+      docker compose exec nextcloud php occ status
+
+**Tempo Total Estimado: 10-20 minutos**
+
+.. warning::
+   O tempo pode variar dependendo do TTL do DNS e da propagação da alteração.
+
+Problemas Encontrados e Resoluções
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1. **Problema: Nginx-proxy não sincronizado**
+
+   **Sintoma:**
+   
+   .. code-block:: text
+   
+      Certificado SSL inválido ou não encontrado no S2
+   
+   **Causa:**
+   
+   - Certificados SSL não foram replicados entre servidores
+   - Configurações do nginx-proxy não estão sincronizadas
+   
+   **Solução:**
+   
+   .. code-block:: bash
+   
+      # Sincronizar certificados e configurações do nginx-proxy
+      # No S2, antes do teste:
+      rsync -avz S1:/caminho/nginx-proxy/certs/ /caminho/nginx-proxy/certs/
+      rsync -avz S1:/caminho/nginx-proxy/conf.d/ /caminho/nginx-proxy/conf.d/
+      rsync -avz S1:/caminho/nginx-proxy/vhost.d/ /caminho/nginx-proxy/vhost.d/
+      
+      # Ou configurar sincronização automática com GlusterFS
+      # Montar volume compartilhado para nginx-proxy
+   
+   **Prevenção:**
+   
+   - Usar certificados wildcard (ver Cenário 2)
+   - Manter nginx-proxy em volume GlusterFS replicado
+   - Configurar cron job para sync diário:
+   
+   .. code-block:: bash
+   
+      # Adicionar ao crontab do S2
+      0 2 * * * rsync -avz S1:/caminho/nginx-proxy/ /caminho/nginx-proxy/
+
+2. **Problema: Volume GlusterFS inacessível**
+
+   **Sintoma:**
+   
+   .. code-block:: text
+   
+      ls: cannot access '/mnt/nextcloud-data': Transport endpoint is not connected
+   
+   **Causa:**
+   
+   - GlusterFS não consegue se conectar aos bricks do S1
+   - Split-brain no volume
+   - Processo glusterd parado
+   
+   **Solução Imediata:**
+   
+   .. code-block:: bash
+   
+      # No S2, remontar volume GlusterFS
+      umount /mnt/nextcloud-data
+      
+      # Verificar status do GlusterFS
+      systemctl status glusterd
+      
+      # Se necessário, reiniciar glusterd
+      systemctl restart glusterd
+      
+      # Verificar peers disponíveis
+      gluster peer status
+      
+      # Remontar volume (somente brick local do S2)
+      mount -t glusterfs localhost:/nextcloud-volume /mnt/nextcloud-data
+      
+      # Verificar montagem
+      df -h | grep gluster
+      ls -l /mnt/nextcloud-data
+   
+   **Solução Permanente:**
+   
+   .. code-block:: bash
+   
+      # Configurar volume para operar com apenas 1 brick
+      gluster volume set nextcloud-volume cluster.quorum-type none
+      
+      # Atualizar /etc/fstab para usar localhost
+      # DE: server1:/nextcloud-volume /mnt/nextcloud-data glusterfs defaults 0 0
+      # PARA: localhost:/nextcloud-volume /mnt/nextcloud-data glusterfs defaults,_netdev 0 0
+
+3. **Problema: Nextcloud com erro de configuração**
+
+   **Sintoma:**
+   
+   .. code-block:: text
+   
+      Configuration was not read or initialized correctly, 
+      not overwriting /var/www/html/config/config.php
+      
+      Your data directory is invalid.
+   
+   **Causa:**
+   
+   - Volume GlusterFS inacessível (ver problema anterior)
+   - Permissões incorretas no diretório de dados
+   - config.php corrompido ou inacessível
+   
+   **Solução:**
+   
+   .. code-block:: bash
+   
+      # 1. Verificar montagem do volume
+      df -h | grep nextcloud-data
+      ls -la /mnt/nextcloud-data/
+      
+      # 2. Verificar permissões
+      ls -ld /mnt/nextcloud-data/
+      # Deve ser: drwxr-xr-x www-data www-data
+      
+      # 3. Corrigir permissões se necessário
+      docker compose exec nextcloud chown -R www-data:www-data /var/www/html/data
+      
+      # 4. Verificar config.php
+      docker compose exec nextcloud cat /var/www/html/config/config.php
+      
+      # 5. Recriar container se necessário
+      docker compose up -d nextcloud --force-recreate
+      
+      # 6. Executar manutenção
+      docker compose exec nextcloud php occ maintenance:mode --off
+      docker compose exec nextcloud php occ files:scan --all
+
+4. **Problema: Conexão ao banco de dados após promoção**
+
+   **Sintoma:**
+   
+   .. code-block:: text
+   
+      SQLSTATE[08006] [7] could not connect to server
+   
+   **Causa:**
+   
+   - Nextcloud ainda tentando conectar ao host antigo do PostgreSQL
+   - config.php não atualizado para novo primário
+   
+   **Solução:**
+   
+   .. code-block:: bash
+   
+      # Verificar configuração atual
+      docker compose exec nextcloud php -r "require '/var/www/html/config/config.php'; print_r(\$CONFIG['dbhost']);"
+      
+      # Se ainda apontar para S1, atualizar
+      docker compose exec nextcloud sed -i "s/189.39.218.225/187.57.255.128/g" /var/www/html/config/config.php
+      
+      # Ou editar manualmente
+      docker compose exec nextcloud vi /var/www/html/config/config.php
+      # Mudar 'dbhost' => 'postgres' ou IP local do S2
+      
+      # Reiniciar Nextcloud
+      docker compose restart nextcloud
+
+Cenário de Teste 2: Failover Com Certificado Wildcard
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Configuração do Ambiente:**
+
+- Certificados SSL wildcard (``*.librecode.coop``)
+- Projetos replicados: ``nginx-proxy``, ``nextcloud-docker``, ``postgres``
+- Dados replicados: Nextcloud, PostgreSQL, **certificados SSL**
+- **S1 Ativo**: nginx-proxy, nextcloud, postgres (primário)
+- **S2 Ativo**: nginx-proxy, nextcloud (standby), postgres (réplica)
+
+**Vantagens do Wildcard:**
+
+- Mesmo certificado funciona em ambos os servidores
+- nginx-proxy pode estar ativo em ambos os datacenters
+- Failover mais rápido (sem necessidade de iniciar nginx-proxy)
+- Menos pontos de falha
+
+**Procedimento de Teste:**
+
+1. **Simular Falha do S1** (Tempo: 1 min)
+
+   .. code-block:: bash
+   
+      # No S1
+      docker compose down
+
+2. **Atualizar DNS** (Tempo: 2-5 min)
+
+   .. code-block:: bash
+   
+      # Atualizar entrada A para IP do S2
+      # lugar.librecode.coop: 189.39.218.225 → 187.57.255.128
+
+3. **Promover PostgreSQL no S2** (Tempo: 30 seg - 1 min)
+
+   .. code-block:: bash
+   
+      docker compose exec -u postgres postgres pg_ctl promote
+      docker compose exec postgres psql -U postgres -c "SELECT pg_is_in_recovery();"
+
+4. **Validar Serviços** (Tempo: 1-2 min)
+
+   .. code-block:: bash
+   
+      # nginx-proxy já está ativo
+      docker compose ps
+      
+      # Testar acesso
+      curl -I https://lugar.librecode.coop
+      
+      # Verificar certificado SSL
+      openssl s_client -connect lugar.librecode.coop:443 -servername lugar.librecode.coop < /dev/null 2>/dev/null | openssl x509 -noout -dates
+
+**Tempo Total Estimado: 5-10 minutos**
+
+**Vantagens Observadas:**
+
+- Failover 50% mais rápido que Cenário 1
+- Menos passos manuais
+- Certificado válido imediatamente
+- nginx-proxy já operacional
+
+**Problemas Específicos:**
+
+- Nenhum problema adicional observado
+- Todos os problemas do Cenário 1 ainda aplicáveis (GlusterFS, banco de dados)
+
+Recomendações Pós-Teste
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1. **Documentar Tempos Reais**
+
+   .. code-block:: text
+   
+      Teste realizado em: ___/___/2025
+      Horário de início: __:__
+      
+      Etapa 1 (Desligar S1): __ min
+      Etapa 2 (Atualizar DNS): __ min
+      Etapa 3 (Promover Postgres): __ min
+      Etapa 4 (Iniciar nginx-proxy): __ min (se aplicável)
+      Etapa 5 (Validar Nextcloud): __ min
+      
+      Tempo total: __ min
+      Problemas encontrados: ________________
+
+2. **Automatizar Failover**
+
+   Considerar implementar:
+   
+   - Script de failover automático
+   - Monitoramento com ações automáticas
+   - Atualização de DNS via API
+   - Migrar para Patroni para failover totalmente automático
+
+3. **Melhorias de Infraestrutura**
+
+   - Usar certificados wildcard (se possível)
+   - Sincronizar nginx-proxy via GlusterFS
+   - Implementar health checks automáticos
+   - Configurar alertas para todos os componentes
+
 Procedimento de Teste Trimestral
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
