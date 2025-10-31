@@ -48,6 +48,7 @@ Manual de Utilização
    :caption: Armazenamento
    
    arquivos-sinc
+   glusterfs
    backup
 
 .. toctree::
