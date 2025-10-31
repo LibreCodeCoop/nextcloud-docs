@@ -829,6 +829,125 @@ Porta TCP N/A
    # Reiniciar glusterd
    systemctl restart glusterd
 
+Connection Attempt Failed (Invalid Argument)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Sintoma:**
+
+.. code-block:: text
+
+   [2025-10-31 15:30:19] E [socket.c:3539:socket_connect] 0-gv0-client-1: 
+   connection attempt on 127.0.0.1:24007 failed, (Invalid argument)
+
+**Causas:**
+
+1. Tentativa de conectar via localhost quando deveria usar hostname/IP correto
+2. IPv6 desabilitado mas GlusterFS tentando usar IPv6
+3. Configuração de rede incorreta no volume
+4. Arquivo de volume corrompido no cliente
+
+**Solução 1: Corrigir Montagem com Hostname Correto**
+
+.. code-block:: bash
+
+   # Desmontar volume
+   umount /mnt/nextcloud-data
+   
+   # Montar usando hostname/IP real do servidor, não localhost
+   mount.glusterfs server1.librecode.coop:/gv0 /mnt/nextcloud-data
+   
+   # Ou usando IP diretamente
+   mount.glusterfs 192.168.1.10:/gv0 /mnt/nextcloud-data
+   
+   # Atualizar /etc/fstab se necessário
+   # DE: localhost:/gv0 /mnt/data glusterfs defaults,_netdev 0 0
+   # PARA: server1.librecode.coop:/gv0 /mnt/data glusterfs defaults,_netdev 0 0
+
+**Solução 2: Habilitar IPv6 (se desabilitado)**
+
+Se o IPv6 está desabilitado e GlusterFS tenta usá-lo:
+
+.. code-block:: bash
+
+   # Verificar se IPv6 está desabilitado
+   cat /proc/sys/net/ipv6/conf/all/disable_ipv6
+   # Se retornar 1, está desabilitado
+   
+   # Habilitar IPv6 temporariamente
+   sysctl -w net.ipv6.conf.all.disable_ipv6=0
+   sysctl -w net.ipv6.conf.default.disable_ipv6=0
+   
+   # Ou forçar GlusterFS a usar apenas IPv4
+   # Adicionar ao /etc/fstab:
+   # server1:/gv0 /mnt/data glusterfs defaults,_netdev,transport=tcp,xlator-option=transport.address-family=inet 0 0
+   
+   # Remontar
+   umount /mnt/nextcloud-data
+   mount -a
+
+**Solução 3: Limpar Cache do Cliente**
+
+.. code-block:: bash
+
+   # Parar processos do GlusterFS cliente
+   killall glusterfs
+   
+   # Limpar arquivos de cache/volume do cliente
+   rm -rf /var/lib/glusterd/vols/gv0/run/
+   rm -rf /var/run/gluster/
+   
+   # Remontar volume
+   mount.glusterfs server1.librecode.coop:/gv0 /mnt/nextcloud-data
+
+**Solução 4: Verificar e Corrigir /etc/hosts**
+
+.. code-block:: bash
+
+   # Verificar /etc/hosts
+   cat /etc/hosts | grep -E "server|localhost"
+   
+   # Deve ter:
+   127.0.0.1       localhost
+   192.168.1.10    server1.librecode.coop server1
+   192.168.1.11    server2.librecode.coop server2
+   
+   # NÃO deve ter servidor GlusterFS apontando para 127.0.0.1
+   # ERRADO: 127.0.0.1 server1.librecode.coop
+   # CORRETO: 192.168.1.10 server1.librecode.coop
+
+**Solução 5: Recriar Volfile do Cliente**
+
+.. code-block:: bash
+
+   # No servidor, obter volfile
+   gluster volume info gv0
+   
+   # No cliente, forçar atualização do volfile
+   mount.glusterfs server1.librecode.coop:/gv0 /mnt/nextcloud-data -o fetch-attempts=3
+   
+   # Verificar logs do cliente
+   tail -f /var/log/glusterfs/mnt-nextcloud-data.log
+
+**Validar Solução:**
+
+.. code-block:: bash
+
+   # Verificar montagem
+   df -h | grep gv0
+   mount | grep gv0
+   
+   # Testar leitura
+   ls -la /mnt/nextcloud-data
+   
+   # Testar escrita
+   touch /mnt/nextcloud-data/test-$(date +%s).txt
+   
+   # Verificar logs sem erros
+   tail -20 /var/log/glusterfs/mnt-nextcloud-data.log | grep -i error
+
+.. warning::
+   Nunca use ``localhost`` ou ``127.0.0.1`` para montar volumes GlusterFS em clientes remotos. Sempre use o hostname ou IP real do servidor GlusterFS.
+
 Manutenção e Remoção
 --------------------
 
